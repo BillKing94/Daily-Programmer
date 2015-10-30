@@ -62,6 +62,8 @@ private:
 	const static regex rx_arrow;
 
 	string equation;
+	string equationRemaining;
+	bool returnedEOF;
 
 public:
 	chem_lexer(string equation);

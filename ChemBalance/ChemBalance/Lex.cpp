@@ -10,13 +10,14 @@ const regex chem_lexer::rx_arrow("^->");
 chem_lexer::chem_lexer(string equation)
 {
 	this->equation = equation;
+	this->equationRemaining = equation;
+	this->returnedEOF = false;
 }
 
 bool
 chem_lexer::get_next_token(lex_result* resultPtr)
 {
-	static const char* eq = equation.c_str();
-	static bool returnedEOF = false;
+	const char* eq = equationRemaining.c_str();
 
 	if (*eq == 0) // end of string
 	{
@@ -59,12 +60,14 @@ chem_lexer::get_next_token(lex_result* resultPtr)
 
 		if (resultPtr->type != UNKNOWN)
 		{
-			eq += matchResults[0].length();
+			equationRemaining = string(eq + matchResults[0].length());
+			eq = equationRemaining.c_str();
 		}
 		else
 		{
 			cerr << "Unknown Symbol" << endl;
-			eq += 1;
+			equationRemaining = string(eq+1);
+			eq = equationRemaining.c_str();
 		}
 	} while (resultPtr->type == SPACE && *eq != 0);
 

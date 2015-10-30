@@ -6,6 +6,7 @@
 #include <boost/numeric/ublas/io.hpp>
 
 using boost::rational;
+using boost::numeric::ublas::vector;
 using namespace boost::numeric::ublas;
 using namespace std;
 
@@ -31,7 +32,7 @@ matrix<T> rref(matrix<T> m)
 				i = r;
 				lead = lead + 1;
 				if (columnCount == lead)
-					break;
+					return result;
 			}
 		}
 
@@ -41,7 +42,10 @@ matrix<T> rref(matrix<T> m)
 			rowI.swap(rowR);
 
 			if (result(r, lead) != 0)
-				rowR /= result(r, lead);
+			{
+				rational<int> divisor = result(r, lead);
+				rowR /= divisor;
+			}
 		}
 
 		for (int i = 0; i < rowCount; i++)
@@ -55,7 +59,8 @@ matrix<T> rref(matrix<T> m)
 			}
 		}
 
-		lead = lead + 1;
+		lead++;
+
 	}
 
 	return result;
@@ -155,12 +160,18 @@ chem_equation::balance(void)
 		}
 	}
 
-	for (auto iMol = left.begin(); iMol != left.end(); iMol++)
+	// Check for alchemy (i.e. if the equation is impossible)
+	for (auto iMol = right.begin(); iMol != right.end(); iMol++)
 	{
 		t_molecule mol = get<0>(*iMol);
 		for (auto iEl = mol.begin(); iEl != mol.end(); iEl++)
 		{
-			elements.insert(get<0>(*iEl));
+			if (elements.find(get<0>(*iEl)) == elements.end())
+			{
+				// TODO: return some sort of flag
+				cerr << "Alchemy detected." << endl;
+				return *this;
+			}
 		}
 	}
 
@@ -183,7 +194,7 @@ chem_equation::balance(void)
 
 			int elIdx = (int)distance(elements.begin(), elements.find(elName));
 
-			A(elIdx, molIdx) = elCount;
+			A(elIdx, molIdx) += elCount;
 		}
 	}
 
@@ -201,10 +212,15 @@ chem_equation::balance(void)
 		}
 	}
 
+#if _DEBUG
+	cout << "A:" << endl << A << endl << endl;
+#endif
+
 	auto A2 = rref(A);
 
+
 #if _DEBUG
-	cout << A2;
+	cout << "A2:" << endl << A2 << endl << endl;
 #endif
 
 	std::vector<int> denominators;
@@ -228,17 +244,56 @@ chem_equation::balance(void)
 	}
 	knowns = nCols - unknowns;
 
+	if (knowns == 0)
+	{
+		cerr << "Impossible!" << endl;
+		// TODO: return error flag
+		return *this;
+	}
+
+	matrix_range<matrix<rational<int>>> unknownCoeffs(A2, range(0, unknowns), range(nCols - knowns, nCols));
+
 	// Take lcd of values in the first *unknowns* rows and the last *knowns* columns
 
-	for (int colIdx = nCols - knowns; colIdx < nCols; colIdx++)
-		for (int rowIdx = 0; rowIdx < unknowns; rowIdx++)
-			denominators.push_back(A2(rowIdx, colIdx).denominator());
+	for (int rowIdx = 0; rowIdx < unknownCoeffs.size1(); rowIdx++)
+		for (int colIdx = 0; colIdx < unknownCoeffs.size2(); colIdx++)
+			denominators.push_back(unknownCoeffs(rowIdx, colIdx).denominator());
 
 	int lcm = least_common_multiple(denominators);
 
-	// TODO: multiply coeffs by lcm and build output
+	A2 *= lcm;
 
-	return chem_equation();
+	boost::numeric::ublas::vector<int> coeffs(nMoleculesTotal);
+
+	for (int i = knowns; i < nMoleculesTotal; i++)
+		coeffs(i) = lcm;
+
+#if _DEBUG
+	cout << "unknownCoeffs:" << endl << unknownCoeffs << endl << endl;
+#endif
+
+	matrix<rational<int>> unknownValues = prod(-1 * unknownCoeffs, matrix<rational<int>>(knowns, 1, 1));
+
+#if _DEBUG
+	cout << "unknownValues:" << endl << unknownValues << endl << endl;
+#endif
+
+	for (int i = 0; i < unknowns; i++)
+		coeffs(i) = unknownValues(i, 0).numerator();
+
+#if _DEBUG
+	cout << "coeffs:" << endl << coeffs << endl << endl;
+#endif
+
+	chem_equation result = *this;
+
+	for (int i = 0; i < result.left.size(); i++)
+		get<1>(result.left[i]) = coeffs[i];
+
+	for (int i = 0; i < result.right.size(); i++)
+		get<1>(result.right[i]) = coeffs[result.left.size() + i];
+
+	return result;
 }
 
 #pragma region operator<< overloads
