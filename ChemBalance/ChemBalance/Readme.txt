@@ -1,0 +1,1 @@
+NOTE: element groupings (e.g. "6K4[Fe(SCN)6]") are not implemented - I forgot about them initially, and they're not interesting enough to merit rewriting the parser.
