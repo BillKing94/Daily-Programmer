@@ -3,30 +3,60 @@
 #include <tuple>
 #include <vector>
 #include <set>
+#include <map>
+#include <memory>
 #include <ostream>
 
-typedef std::tuple<std::string, int> t_element;
-typedef std::vector<t_element> t_molecule;
-typedef std::tuple<t_molecule, int> t_moleculeCount;
-typedef std::vector<t_moleculeCount> t_formula;
-
-
-struct chem_equation
+struct chem_component
 {
-	t_formula left;
-	t_formula right;
+	//virtual std::map<std::string, int> elementCounts() = 0;
+	virtual void print(std::ostream& stream) const = 0;
+};
+
+struct chem_componentCount : public chem_component
+{
+	std::shared_ptr<chem_component> component;
+	int count;
+
+	void print(std::ostream& stream) const;
+};
+
+struct chem_element : public chem_component
+{
+	std::string symbol;
+	//std::map<std::string, int> elementCounts();
+
+	void print(std::ostream& stream) const;
+};
+
+struct chem_molecule : public chem_component
+{
+	std::vector<chem_componentCount> components;
+	//std::map<std::string, int> elementCounts();
+
+	void print(std::ostream& stream) const;
+};
+
+struct chem_formula : public chem_component
+{
+	std::vector<std::tuple<chem_molecule, int>> molecules;
+	//std::map<std::string, int> elementCounts();
+
+	void print(std::ostream& stream) const;
+};
+
+struct chem_equation : public chem_component
+{
+	chem_formula left;
+	chem_formula right;
 
 	chem_equation(void);
 	chem_equation(std::string equation);
 	chem_equation(const chem_equation& original);
 
-	chem_equation balance(void);
+	//chem_equation balance(void);
 
-	friend std::ostream& operator<<(std::ostream& os, const chem_equation& eq);
+	void print(std::ostream& stream) const;
 };
 
-std::ostream& operator<<(std::ostream& os, const chem_equation& eq);
-std::ostream& operator<<(std::ostream& os, const t_element& el);
-std::ostream& operator<<(std::ostream& os, const t_molecule& mol);
-std::ostream& operator<<(std::ostream& os, const t_moleculeCount& mc);
-std::ostream& operator<<(std::ostream& os, const t_formula& f);
+std::ostream& operator<<(std::ostream& os, const chem_component& el);

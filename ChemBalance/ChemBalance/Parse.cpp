@@ -21,12 +21,15 @@ struct parser_state
 
 // parsing procs forward declarations
 chem_equation _equation(parser_state* state);
-t_formula _formula(parser_state* state);
-t_formula _formulaTail(parser_state* state);
-t_moleculeCount _moleculeCount(parser_state* state);
-t_molecule _molecule(parser_state* state);
-t_molecule _moleculeTail(parser_state* state);
-t_element _element(parser_state* state);
+chem_formula _formula(parser_state* state);
+chem_formula _formulaTail(parser_state* state);
+tuple<chem_molecule, int> _moleculeCount(parser_state* state);
+chem_molecule _molecule(parser_state* state);
+shared_ptr<chem_component> _component(parser_state* state);
+chem_componentCount _componentCount(parser_state* state);
+chem_molecule _moleculeTail(parser_state* state);
+chem_element _element(parser_state* state);
+
 
 void err_premature_eof()
 {
@@ -77,129 +80,135 @@ _equation(parser_state* state) // formula ARROW formula
 	return result;
 }
 
-t_formula
-_formula(parser_state* state) //moleculeCount formulaTail
+chem_formula _formula(parser_state* state) // moleculeCount formulaTail
 {
-	t_formula result;
-
-	result.push_back(_moleculeCount(state));
-
-	t_formula tail = _formulaTail(state);
-	result.insert(result.end(), tail.begin(), tail.end());
+	chem_formula result;
+	result.molecules.push_back(_moleculeCount(state));
+	chem_formula tail = _formulaTail(state);
+	result.molecules.insert(result.molecules.end(), tail.molecules.begin(), tail.molecules.end());
 
 	return result;
 }
 
-t_formula
-_formulaTail(parser_state* state) // eps | PLUS formula
+chem_formula _formulaTail(parser_state* state) // e | PLUS FORMULA
 {
-	t_formula result;
+	chem_formula result;
 
 	switch (state->token.type)
 	{
-		// Follow Set
+		// Follow:
 		case ARROW:
 		case END_OF_FILE:
-			break; // return result
+			return result;
 
-		// First Set
+			// First:
 		case PLUS:
-		{
-			advance_token(state);
-			t_formula formula = _formula(state);
-			result.insert(result.end(), formula.begin(), formula.end());
-		} break;
+			break;
+
 		default:
 			err_syntax();
 	}
 
+	advance_token(state);
+
+	result = _formula(state);
+
 	return result;
 }
-t_moleculeCount
-_moleculeCount(parser_state* state) // NUMBER molecule | molecule
+
+tuple<chem_molecule, int> _moleculeCount(parser_state* state) // NUMBER molecule | molecule
 {
-	int count;
-	t_molecule molecule;
+	int count = 1;
 
 	if (state->token.type == NUMBER)
 	{
 		count = state->token.num;
 		advance_token(state);
 	}
-	else
-		count = 1;
 
-	molecule = _molecule(state);
+	chem_molecule molecule = _molecule(state);
 
-	t_moleculeCount result = make_tuple(molecule, count);
-	return result;
+	return make_tuple(molecule, count);
 }
 
-t_molecule
-_molecule(parser_state* state) // element moleculeTail
+chem_molecule _molecule(parser_state* state) // componentCount _moleculeTail
 {
-	t_molecule result;
-	result.push_back(_element(state));
+	chem_molecule result;
+	result.components.push_back(_componentCount(state));
 
-	t_molecule tail = _moleculeTail(state);
-	result.insert(result.end(), tail.begin(), tail.end());
+	chem_molecule tail = _moleculeTail(state);
+	result.components.insert(result.components.end(), tail.components.begin(), tail.components.end());
 
 	return result;
 }
 
-t_molecule
-_moleculeTail(parser_state* state) // eps | molecule
+shared_ptr<chem_component> _component(parser_state* state) // ELEM | LPAREN molecule RPAREN
 {
-	t_molecule result;
-
-	switch (state->token.type) {
-		// follow
-		case PLUS:
-		case ARROW:
-		case END_OF_FILE:
-			break; // return result
-
-		// first
+	switch (state->token.type)
+	{
 		case ELEM:
+			return make_shared<chem_element>(_element(state));
+		case LPAREN:
 		{
-			result = _molecule(state);
-		} break;
+			advance_token(state);
+			auto result = make_shared<chem_molecule>(_molecule(state));
+			if (state->token.type == RPAREN)
+				advance_token(state);
+			else
+				err_syntax();
+			return result;
+		}
 		default:
 			err_syntax();
+			return shared_ptr<chem_element>(); // to avoid compiler warning
+	}
+}
+
+chem_componentCount _componentCount(parser_state* state) // component | component NUMBER
+{
+	chem_componentCount result;
+	result.component = _component(state);
+	result.count = 1;
+
+	if (state->token.type == NUMBER)
+	{
+		result.count = state->token.num;
+		advance_token(state);
 	}
 
 	return result;
 }
 
-t_element
-_element(parser_state* state) // ELEM | ELEM NUMBER
+chem_molecule _moleculeTail(parser_state* state) // e | molecule
 {
-	string element;
-	int count;
+	switch (state->token.type)
+	{
+		// First:
+		case ELEM:
+		case LPAREN:
+			return _molecule(state);
+		
+		// Follow:
+		case PLUS:
+		case ARROW:
+		case RPAREN:
+		case END_OF_FILE:
+			return chem_molecule();
+
+		default:
+			err_syntax();
+			return chem_molecule(); // to avoid compiler warning
+	}
+}
+
+chem_element _element(parser_state* state) // ELEM
+{
+	chem_element result;
 
 	if (state->token.type != ELEM)
 		err_syntax();
 
-	element = *state->token.str;
-	advance_token(state);
+	result.symbol = *state->token.str;
 
-	switch (state->token.type)
-	{
-		// follow
-		case ELEM:
-		case PLUS:
-		case ARROW:
-		case END_OF_FILE:
-			count = 1;
-			break;
-		case NUMBER:
-			count = state->token.num;
-			advance_token(state);
-			break;
-		default:
-			err_syntax();
-	}
-
-	t_element result = make_tuple(element, count);
 	return result;
 }

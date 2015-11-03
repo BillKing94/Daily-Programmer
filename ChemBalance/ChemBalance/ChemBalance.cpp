@@ -146,206 +146,200 @@ chem_equation::chem_equation(const chem_equation& original)
 	this->right = original.right;
 }
 
-chem_equation
-chem_equation::balance(void)
+//chem_equation
+//chem_equation::balance(void)
+//{
+//	set<string> elements;
+//
+//	for (auto iMol = left.begin(); iMol != left.end(); iMol++)
+//	{
+//		t_molecule mol = get<0>(*iMol);
+//		for (auto iEl = mol.begin(); iEl != mol.end(); iEl++)
+//		{
+//			elements.insert(get<0>(*iEl));
+//		}
+//	}
+//
+//	// Check for alchemy (i.e. if the equation is impossible)
+//	for (auto iMol = right.begin(); iMol != right.end(); iMol++)
+//	{
+//		t_molecule mol = get<0>(*iMol);
+//		for (auto iEl = mol.begin(); iEl != mol.end(); iEl++)
+//		{
+//			if (elements.find(get<0>(*iEl)) == elements.end())
+//			{
+//				// TODO: return some sort of flag
+//				cerr << "Alchemy detected." << endl;
+//				return *this;
+//			}
+//		}
+//	}
+//
+//	int nElements = (int)elements.size();
+//	int nMoleculesLeft = (int)left.size();
+//	int nMoleculesRight = (int)right.size();
+//	int nMoleculesTotal = nMoleculesLeft + nMoleculesRight;
+//
+//	matrix<rational<int>> A = zero_matrix<rational<int>>(nElements, nMoleculesTotal);
+//
+//
+//
+//	for (int molIdx = 0; molIdx < nMoleculesLeft; molIdx++)
+//	{
+//		t_molecule mol = get<0>(left[molIdx]);
+//		for (auto iEl = mol.begin(); iEl != mol.end(); iEl++)
+//		{
+//			string elName = get<0>(*iEl);
+//			int elCount = get<1>(*iEl);
+//
+//			int elIdx = (int)distance(elements.begin(), elements.find(elName));
+//
+//			A(elIdx, molIdx) += elCount;
+//		}
+//	}
+//
+//	for (int molIdx = 0; molIdx < nMoleculesRight; molIdx++)
+//	{
+//		t_molecule mol = get<0>(right[molIdx]);
+//		for (auto iEl = mol.begin(); iEl != mol.end(); iEl++)
+//		{
+//			string elName = get<0>(*iEl);
+//			int elCount = get<1>(*iEl);
+//
+//			int elIdx = (int)distance(elements.begin(), elements.find(elName));
+//
+//			A(elIdx, molIdx + nMoleculesLeft) = -elCount;
+//		}
+//	}
+//
+//#if _DEBUG
+//	cout << "A:" << endl << A << endl << endl;
+//#endif
+//
+//	auto A2 = rref(A);
+//
+//
+//#if _DEBUG
+//	cout << "A2:" << endl << A2 << endl << endl;
+//#endif
+//
+//	std::vector<int> denominators;
+//	int nRows = (int)A2.size1();
+//	int nCols = (int)A2.size2();
+//
+//	int knowns; // # of known coeffs (set to 1)
+//	int unknowns = 0; // # of unknown coeffs
+//
+//	for (int rowIdx = 0; rowIdx < nRows; rowIdx++)
+//	{
+//		for (int colIdx = 0; colIdx < nCols; colIdx++)
+//		{
+//			if (A2(rowIdx, colIdx) != 0)
+//				goto nonzero;
+//		}
+//		//allzero:
+//		break;
+//	nonzero:
+//		unknowns++;
+//	}
+//	knowns = nCols - unknowns;
+//
+//	if (knowns == 0)
+//	{
+//		cerr << "Impossible!" << endl;
+//		// TODO: return error flag
+//		return *this;
+//	}
+//
+//	matrix_range<matrix<rational<int>>> unknownCoeffs(A2, range(0, unknowns), range(nCols - knowns, nCols));
+//
+//	// Take lcd of values in the first *unknowns* rows and the last *knowns* columns
+//
+//	for (int rowIdx = 0; rowIdx < unknownCoeffs.size1(); rowIdx++)
+//		for (int colIdx = 0; colIdx < unknownCoeffs.size2(); colIdx++)
+//			denominators.push_back(unknownCoeffs(rowIdx, colIdx).denominator());
+//
+//	int lcm = least_common_multiple(denominators);
+//
+//	A2 *= lcm;
+//
+//	boost::numeric::ublas::vector<int> coeffs(nMoleculesTotal);
+//
+//	for (int i = knowns; i < nMoleculesTotal; i++)
+//		coeffs(i) = lcm;
+//
+//#if _DEBUG
+//	cout << "unknownCoeffs:" << endl << unknownCoeffs << endl << endl;
+//#endif
+//
+//	matrix<rational<int>> unknownValues = prod(-1 * unknownCoeffs, matrix<rational<int>>(knowns, 1, 1));
+//
+//#if _DEBUG
+//	cout << "unknownValues:" << endl << unknownValues << endl << endl;
+//#endif
+//
+//	for (int i = 0; i < unknowns; i++)
+//		coeffs(i) = unknownValues(i, 0).numerator();
+//
+//#if _DEBUG
+//	cout << "coeffs:" << endl << coeffs << endl << endl;
+//#endif
+//
+//	chem_equation result = *this;
+//
+//	for (int i = 0; i < result.left.size(); i++)
+//		get<1>(result.left[i]) = coeffs[i];
+//
+//	for (int i = 0; i < result.right.size(); i++)
+//		get<1>(result.right[i]) = coeffs[result.left.size() + i];
+//
+//	return result;
+//}
+
+#pragma region operator<< overload and print methods
+
+ostream& operator<<(std::ostream& os, const chem_component& com)
 {
-	set<string> elements;
-
-	for (auto iMol = left.begin(); iMol != left.end(); iMol++)
-	{
-		t_molecule mol = get<0>(*iMol);
-		for (auto iEl = mol.begin(); iEl != mol.end(); iEl++)
-		{
-			elements.insert(get<0>(*iEl));
-		}
-	}
-
-	// Check for alchemy (i.e. if the equation is impossible)
-	for (auto iMol = right.begin(); iMol != right.end(); iMol++)
-	{
-		t_molecule mol = get<0>(*iMol);
-		for (auto iEl = mol.begin(); iEl != mol.end(); iEl++)
-		{
-			if (elements.find(get<0>(*iEl)) == elements.end())
-			{
-				// TODO: return some sort of flag
-				cerr << "Alchemy detected." << endl;
-				return *this;
-			}
-		}
-	}
-
-	int nElements = (int)elements.size();
-	int nMoleculesLeft = (int)left.size();
-	int nMoleculesRight = (int)right.size();
-	int nMoleculesTotal = nMoleculesLeft + nMoleculesRight;
-
-	matrix<rational<int>> A = zero_matrix<rational<int>>(nElements, nMoleculesTotal);
-
-
-
-	for (int molIdx = 0; molIdx < nMoleculesLeft; molIdx++)
-	{
-		t_molecule mol = get<0>(left[molIdx]);
-		for (auto iEl = mol.begin(); iEl != mol.end(); iEl++)
-		{
-			string elName = get<0>(*iEl);
-			int elCount = get<1>(*iEl);
-
-			int elIdx = (int)distance(elements.begin(), elements.find(elName));
-
-			A(elIdx, molIdx) += elCount;
-		}
-	}
-
-	for (int molIdx = 0; molIdx < nMoleculesRight; molIdx++)
-	{
-		t_molecule mol = get<0>(right[molIdx]);
-		for (auto iEl = mol.begin(); iEl != mol.end(); iEl++)
-		{
-			string elName = get<0>(*iEl);
-			int elCount = get<1>(*iEl);
-
-			int elIdx = (int)distance(elements.begin(), elements.find(elName));
-
-			A(elIdx, molIdx + nMoleculesLeft) = -elCount;
-		}
-	}
-
-#if _DEBUG
-	cout << "A:" << endl << A << endl << endl;
-#endif
-
-	auto A2 = rref(A);
-
-
-#if _DEBUG
-	cout << "A2:" << endl << A2 << endl << endl;
-#endif
-
-	std::vector<int> denominators;
-	int nRows = (int)A2.size1();
-	int nCols = (int)A2.size2();
-
-	int knowns; // # of known coeffs (set to 1)
-	int unknowns = 0; // # of unknown coeffs
-
-	for (int rowIdx = 0; rowIdx < nRows; rowIdx++)
-	{
-		for (int colIdx = 0; colIdx < nCols; colIdx++)
-		{
-			if (A2(rowIdx, colIdx) != 0)
-				goto nonzero;
-		}
-		//allzero:
-		break;
-	nonzero:
-		unknowns++;
-	}
-	knowns = nCols - unknowns;
-
-	if (knowns == 0)
-	{
-		cerr << "Impossible!" << endl;
-		// TODO: return error flag
-		return *this;
-	}
-
-	matrix_range<matrix<rational<int>>> unknownCoeffs(A2, range(0, unknowns), range(nCols - knowns, nCols));
-
-	// Take lcd of values in the first *unknowns* rows and the last *knowns* columns
-
-	for (int rowIdx = 0; rowIdx < unknownCoeffs.size1(); rowIdx++)
-		for (int colIdx = 0; colIdx < unknownCoeffs.size2(); colIdx++)
-			denominators.push_back(unknownCoeffs(rowIdx, colIdx).denominator());
-
-	int lcm = least_common_multiple(denominators);
-
-	A2 *= lcm;
-
-	boost::numeric::ublas::vector<int> coeffs(nMoleculesTotal);
-
-	for (int i = knowns; i < nMoleculesTotal; i++)
-		coeffs(i) = lcm;
-
-#if _DEBUG
-	cout << "unknownCoeffs:" << endl << unknownCoeffs << endl << endl;
-#endif
-
-	matrix<rational<int>> unknownValues = prod(-1 * unknownCoeffs, matrix<rational<int>>(knowns, 1, 1));
-
-#if _DEBUG
-	cout << "unknownValues:" << endl << unknownValues << endl << endl;
-#endif
-
-	for (int i = 0; i < unknowns; i++)
-		coeffs(i) = unknownValues(i, 0).numerator();
-
-#if _DEBUG
-	cout << "coeffs:" << endl << coeffs << endl << endl;
-#endif
-
-	chem_equation result = *this;
-
-	for (int i = 0; i < result.left.size(); i++)
-		get<1>(result.left[i]) = coeffs[i];
-
-	for (int i = 0; i < result.right.size(); i++)
-		get<1>(result.right[i]) = coeffs[result.left.size() + i];
-
-	return result;
-}
-
-#pragma region operator<< overloads
-ostream& operator<<(std::ostream& os, const t_element& el)
-{
-	string element = get<0>(el);
-	int elCount = get<1>(el);
-
-	os << element;
-
-	if (elCount > 1)
-		os << elCount;
+	com.print(os);
 
 	return os;
 }
 
-ostream& operator<<(ostream& os, const t_molecule& mol)
+void
+chem_componentCount::print(ostream& os) const
 {
-	for (auto i = mol.begin(); i != mol.end(); i++)
+	os << this->component << this->count;
+}
+
+void
+chem_molecule::print(ostream& os) const
+{
+	for (auto iComCount = this->components.begin(); iComCount != this->components.end(); iComCount++)
 	{
-		os << *i;
+		os << *iComCount;
 	}
-
-	return os;
 }
 
-ostream& operator<<(ostream& os, const t_moleculeCount& mc)
+void
+chem_element::print(ostream& os) const
 {
-	int count = get<1>(mc);
-	if (count > 1)
-		os << count;
-
-	os << get<0>(mc);
-
-	return os;
+	os << this->symbol;
 }
 
-ostream& operator<<(ostream& os, const t_formula& f)
+void
+chem_formula::print(ostream& os) const
 {
-	for (int i = 0; i < f.size(); i++)
+	for (int molIdx = 0; molIdx < this->molecules.size(); molIdx++)
 	{
-		os << f[i];
-		if (i + 1 < f.size())
+		os << get<1>(this->molecules[molIdx]) << get<0>(this->molecules[molIdx]);
+		if (molIdx + 1 < this->molecules.size())
 			os << " + ";
 	}
-
-	return os;
 }
 
-ostream& operator<<(ostream& os, const chem_equation& eq)
+void
+chem_equation::print(ostream& os) const
 {
-	os << eq.left << " -> " << eq.right;
-	return os;
+	os << this->left << " -> " << this->right;
 }
 #pragma endregion

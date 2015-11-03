@@ -13,11 +13,11 @@ int main(void)
 		getline(cin, eqString);
 
 		chem_equation eq(eqString);
-		//cout << eq << endl;
+		cout << eq << endl;
 
-		chem_equation balanced = eq.balance();
+		//chem_equation balanced = eq.balance();
 
-		cout << balanced << endl;
+		//cout << balanced << endl;
 
 	}
 	getchar();

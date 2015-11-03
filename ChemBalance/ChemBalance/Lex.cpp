@@ -6,6 +6,8 @@ const regex chem_lexer::rx_chars("^[A-Z][a-z]*");
 const regex chem_lexer::rx_number("^[0-9]+");
 const regex chem_lexer::rx_plus("^\\+");
 const regex chem_lexer::rx_arrow("^->");
+const regex chem_lexer::rx_lparen("^[\\(\\[]");
+const regex chem_lexer::rx_rparen("^[\\)\\]]");
 
 chem_lexer::chem_lexer(string equation)
 {
@@ -56,6 +58,14 @@ chem_lexer::get_next_token(lex_result* resultPtr)
 		else if (regex_search(eq, matchResults, rx_arrow))
 		{
 			resultPtr->type = ARROW;
+		}
+		else if (regex_search(eq, matchResults, rx_lparen))
+		{
+			resultPtr->type = LPAREN;
+		}
+		else if (regex_search(eq, matchResults, rx_rparen))
+		{
+			resultPtr->type = RPAREN;
 		}
 
 		if (resultPtr->type != UNKNOWN)

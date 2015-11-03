@@ -13,6 +13,8 @@ enum symbol_type
 	NUMBER,
 	PLUS,
 	ARROW,
+	LPAREN,
+	RPAREN,
 	END_OF_FILE
 };
 
@@ -60,6 +62,8 @@ private:
 	const static regex rx_number;
 	const static regex rx_plus;
 	const static regex rx_arrow;
+	const static regex rx_lparen;
+	const static regex rx_rparen;
 
 	string equation;
 	string equationRemaining;
